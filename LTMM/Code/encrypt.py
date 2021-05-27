@@ -1,0 +1,77 @@
+import numpy as np
+import cv2
+import os
+import time
+start_time = time.time()
+def encrypt_function(x, y, img_path):
+    start_time = time.time()
+    x_array = []
+    x_array.append(x)
+    for i in range(0, 10000):
+        result = x_array[i]*y*(1-x_array[i])
+        x_array.append(result)
+    for i in range(0, len(x_array)):
+        x_array[i] = float.hex(x_array[i])
+
+
+    S = []
+    for i in range(0, len(x_array)):
+        s = x_array[i]
+        s = s[5:7]
+        S.append(s)
+
+    key1D = []
+    key1D.append(int(S[0], 16))
+    for i in range(0, len(S)):
+        count = 0
+        for j in range(0, len(key1D)):
+            if S[i] == key1D[j]:
+                count = 1
+
+        if count == 0:
+            S[i] = int(S[i], 16)
+            key1D.append(S[i])
+                
+
+        if len(key1D) == 256:
+            break
+    
+
+    img = cv2.imread(img_path, 0)
+    w, h = img.shape
+    img = img.ravel()
+    img = np.asarray(img)
+    N = len(img)
+    data1 = N % 256
+    if data1 != 0:
+        data1 = 256 - data1
+        data_add = np.ones((data1))*255
+        img1 = np.hstack((img, data_add))
+
+
+    zeros = np.zeros((len(img1)))
+    img1 = img.ravel()
+    for i in range(0, len(img1)-256, 256):
+        for j in range(i, i+256):
+            temp = j % 256
+            temp1 = key1D[temp]
+            zeros[j] = img1[i + temp1]
+
+
+    key1D = np.asarray(key1D, dtype=np.int64)
+    zeros.astype(np.int64)
+    for i in range(0, len(img1)-256, 256):
+        for j in range(i, i+256):
+            temp = j % 256
+            temp1 = key1D[temp]
+            zeros[j] = int(zeros[j]) ^ temp1
+
+    
+    p = 0-data1
+    img_encrypt = zeros[: p]
+    img_encrypt = np.reshape(img_encrypt, (w, h))
+    print("--- %s seconds ---" % (time.time() - start_time))
+    return img_encrypt
+    '''baseName = os.path.basename(img_path)
+    nameImg = 'encrypt_' + baseName
+    cv2.imwrite(nameImg, img_encrypt)'''
